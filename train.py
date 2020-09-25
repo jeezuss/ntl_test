@@ -7,21 +7,22 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-
-REBUILD_DATA = False  # set to true to one once, then back to false unless you want to change something in your training data.
+REBUILD_DATA = False  # РЈСЃС‚Р°РЅРѕРІРёС‚СЊ True РґР»СЏ РїРµСЂРІРѕРіРѕ РѕР±СѓС‡РµРЅРёСЏ, РґР°Р»СЊС€Рµ False
 
 
 class MandF():
-    IMG_SIZE = 50
-    MALE = "D:/internship_data/male"
-    FEMALE = "D:/internship_data/female"
-    LABELS = {MALE: 0, FEMALE: 1}
+    # РєР»Р°СЃСЃ РґР»СЏ РѕР±СЂР°Р±РѕС‚РєРё РёР·РѕР±СЂР°Р¶РµРЅРёР№
+    IMG_SIZE = 50  # СЂР°Р·РјРµСЂ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ, Рє РєРѕС‚РѕСЂРѕРјСѓ Р±СѓРґРµС‚ РїСЂРѕРёР·РІРѕРґРёС‚СЊСЃСЏ РЅРѕСЂРјР°Р»РёР·Р°С†РёСЏ
+    MALE = "D:/internship_data/male"  # РґРёСЂРµРєС‚РѕСЂРёСЏ СЃ С„РѕС‚Рѕ РјСѓР¶С‡РёРЅ
+    FEMALE = "D:/internship_data/female"  # РґРёСЂРµРєС‚РѕСЂРёСЏ СЃ С„РѕС‚Рѕ Р¶РµРЅС‰РёРЅ
+    LABELS = {MALE: 0, FEMALE: 1}  # РјРµС‚РєРё
     training_data = []
 
     malecount = 0
     femalecount = 0
 
     def make_training_data(self):
+        # РїРµСЂРµР±РёСЂР°РµРј РІСЃРµ jpg С„Р°Р№Р»С‹ РІ РґРёСЂРµРєС‚РѕСЂРёСЏС… Рё РЅРѕСЂРјР°Р»РёР·СѓРµРј РёС…
         for label in self.LABELS:
             print(label)
             for f in tqdm(os.listdir(label)):
@@ -31,25 +32,24 @@ class MandF():
                         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
                         img = cv2.resize(img, (self.IMG_SIZE, self.IMG_SIZE))
                         self.training_data.append([np.array(img), np.eye(2)[
-                            self.LABELS[label]]])  # do something like print(np.eye(2)[1]), just makes one_hot
-                        # print(np.eye(2)[self.LABELS[label]])
-
+                            self.LABELS[label]]])
                         if label == self.MALE:
                             self.malecount += 1
-                        elif label == self.FEMAIL:
+                        elif label == self.FEMALE:
                             self.femalecount += 1
 
                     except Exception as e:
                         pass
                         # print(label, f, str(e))
 
-        np.random.shuffle(self.training_data)
+        np.random.shuffle(self.training_data)  # РїРµСЂРµРјРµС€РёРІР°РЅРёРµ РґР°РЅРЅС‹С…
         np.save("training_data.npy", self.training_data)
         print('Male:', MandF.malecount)
         print('Female:', MandF.femalecount)
 
 
 class Net(nn.Module):
+    # РєР»Р°СЃСЃ РѕРїРёСЃС‹РІР°СЋС‰РёР№ РјРѕРґРµР»СЊ
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(1, 32, 5)
@@ -81,8 +81,8 @@ class Net(nn.Module):
 
 
 if torch.cuda.is_available():
-    # device = torch.device("cpu")
-    device = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
+    # РџСЂРѕРІРµСЂСЏРµРј, РµСЃР»Рё РµСЃС‚СЊ РІРѕР·РјРѕР¶РЅРѕСЃС‚СЊ Р·Р°РїСѓСЃС‚РёС‚СЊ РЅР° gpu
+    device = torch.device("cuda:0")
     print("Running on the GPU")
 else:
     device = torch.device("cpu")
@@ -91,6 +91,7 @@ else:
 net = Net().to(device)
 
 if REBUILD_DATA:
+    # Р•СЃР»Рё True РЅРѕСЂРјР°Р»РёР·СѓРµРј Рё РїРµСЂРµРјРµС€РёРІР°РµРј РґР°РЅРЅС‹Рµ
     mandf = MandF()
     mandf.make_training_data()
 
@@ -100,6 +101,7 @@ print(len(training_data))
 optimizer = optim.Adam(net.parameters(), lr=0.001)
 loss_function = nn.MSELoss()
 
+# РїСЂРµРѕР±СЂР°Р·РѕРІС‹РІР°РµРј РґР°РЅРЅС‹Рµ РІ С‚РµРЅР·РѕСЂС‹ Рё СЂР°Р·Р±РёРІР°РµРј РЅР° С‚СЂРµРЅРёСЂРѕРІРѕС‡РЅС‹Рµ Рё С‚РµСЃС‚СЂРёСЂСѓРµРјС‹Рµ
 X = torch.Tensor([i[0] for i in training_data]).view(-1, 50, 50)
 X = X / 255.0
 y = torch.Tensor([i[1] for i in training_data])
@@ -119,8 +121,9 @@ print(len(test_X))
 
 
 def train(net):
+    # С„СѓРЅРєС†РёСЏ С‚СЂРµРЅРёСЂРѕРІРєРё РјРѕРґРµР»Рё
     BATCH_SIZE = 100
-    EPOCHS = 6
+    EPOCHS = 6  # РІС‹Р±СЂР°РЅРѕ 6 РїСѓС‚РµРј РїРµСЂРµР±РѕСЂР° СЂР°Р·РЅС‹С… РІР°СЂРёР°РЅС‚РѕРІ
     for epoch in range(EPOCHS):
         for i in tqdm(range(0, len(train_X), BATCH_SIZE)):
             batch_X = train_X[i:i + BATCH_SIZE].view(-1, 1, 50, 50)
@@ -133,13 +136,14 @@ def train(net):
             loss = loss_function(outputs, batch_y)
             loss.backward()
             optimizer.step()
-        print(loss)
+        print(loss)  # РІС‹РІРѕРґ С„СѓРЅРєС†РёРё РїРѕС‚РµСЂСЊ
 
 
 train(net)
 
 
 def test(net):
+    # С„СѓРЅРєС†РёСЏ РїСЂРѕРІРµСЂРєРё
     correct = 0
     total = 0
     with torch.no_grad():
@@ -151,10 +155,11 @@ def test(net):
             if predicted_class == real_class:
                 correct += 1
             total += 1
-    print("Accuracy:", round(correct / total, 3))
+    print("Accuracy:", round(correct / total, 3))  # РІС‹РІРѕРґРёС‚ С‚РѕС‡РЅРѕСЃС‚СЊ
 
 
 test(net)
 
+# СЃРѕС…СЂР°РЅСЏРµРј РјРѕРґРµР»СЊ
 PATH = 'D:\mf.pth'
 torch.save(net.state_dict(), PATH)
