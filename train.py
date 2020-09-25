@@ -7,22 +7,22 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-REBUILD_DATA = False  # РЈСЃС‚Р°РЅРѕРІРёС‚СЊ True РґР»СЏ РїРµСЂРІРѕРіРѕ РѕР±СѓС‡РµРЅРёСЏ, РґР°Р»СЊС€Рµ False
+REBUILD_DATA = False  # Установить True для первого обучения, дальше False
 
 
 class MandF():
-    # РєР»Р°СЃСЃ РґР»СЏ РѕР±СЂР°Р±РѕС‚РєРё РёР·РѕР±СЂР°Р¶РµРЅРёР№
-    IMG_SIZE = 50  # СЂР°Р·РјРµСЂ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ, Рє РєРѕС‚РѕСЂРѕРјСѓ Р±СѓРґРµС‚ РїСЂРѕРёР·РІРѕРґРёС‚СЊСЃСЏ РЅРѕСЂРјР°Р»РёР·Р°С†РёСЏ
-    MALE = "D:/internship_data/male"  # РґРёСЂРµРєС‚РѕСЂРёСЏ СЃ С„РѕС‚Рѕ РјСѓР¶С‡РёРЅ
-    FEMALE = "D:/internship_data/female"  # РґРёСЂРµРєС‚РѕСЂРёСЏ СЃ С„РѕС‚Рѕ Р¶РµРЅС‰РёРЅ
-    LABELS = {MALE: 0, FEMALE: 1}  # РјРµС‚РєРё
+    # класс для обработки изображений
+    IMG_SIZE = 50  # размер изображения, к которому будет производиться нормализация
+    MALE = "D:/internship_data/male"  # директория с фото мужчин
+    FEMALE = "D:/internship_data/female"  # директория с фото женщин
+    LABELS = {MALE: 0, FEMALE: 1}  # метки
     training_data = []
 
     malecount = 0
     femalecount = 0
 
     def make_training_data(self):
-        # РїРµСЂРµР±РёСЂР°РµРј РІСЃРµ jpg С„Р°Р№Р»С‹ РІ РґРёСЂРµРєС‚РѕСЂРёСЏС… Рё РЅРѕСЂРјР°Р»РёР·СѓРµРј РёС…
+        # перебираем все jpg файлы в директориях и нормализуем их
         for label in self.LABELS:
             print(label)
             for f in tqdm(os.listdir(label)):
@@ -42,14 +42,14 @@ class MandF():
                         pass
                         # print(label, f, str(e))
 
-        np.random.shuffle(self.training_data)  # РїРµСЂРµРјРµС€РёРІР°РЅРёРµ РґР°РЅРЅС‹С…
+        np.random.shuffle(self.training_data)  # перемешивание данных
         np.save("training_data.npy", self.training_data)
         print('Male:', MandF.malecount)
         print('Female:', MandF.femalecount)
 
 
 class Net(nn.Module):
-    # РєР»Р°СЃСЃ РѕРїРёСЃС‹РІР°СЋС‰РёР№ РјРѕРґРµР»СЊ
+    # класс описывающий модель
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(1, 32, 5)
@@ -81,7 +81,7 @@ class Net(nn.Module):
 
 
 if torch.cuda.is_available():
-    # РџСЂРѕРІРµСЂСЏРµРј, РµСЃР»Рё РµСЃС‚СЊ РІРѕР·РјРѕР¶РЅРѕСЃС‚СЊ Р·Р°РїСѓСЃС‚РёС‚СЊ РЅР° gpu
+    # Проверяем, если есть возможность запустить на gpu
     device = torch.device("cuda:0")
     print("Running on the GPU")
 else:
@@ -91,7 +91,7 @@ else:
 net = Net().to(device)
 
 if REBUILD_DATA:
-    # Р•СЃР»Рё True РЅРѕСЂРјР°Р»РёР·СѓРµРј Рё РїРµСЂРµРјРµС€РёРІР°РµРј РґР°РЅРЅС‹Рµ
+    # Если True нормализуем и перемешиваем данные
     mandf = MandF()
     mandf.make_training_data()
 
@@ -101,7 +101,7 @@ print(len(training_data))
 optimizer = optim.Adam(net.parameters(), lr=0.001)
 loss_function = nn.MSELoss()
 
-# РїСЂРµРѕР±СЂР°Р·РѕРІС‹РІР°РµРј РґР°РЅРЅС‹Рµ РІ С‚РµРЅР·РѕСЂС‹ Рё СЂР°Р·Р±РёРІР°РµРј РЅР° С‚СЂРµРЅРёСЂРѕРІРѕС‡РЅС‹Рµ Рё С‚РµСЃС‚СЂРёСЂСѓРµРјС‹Рµ
+# преобразовываем данные в тензоры и разбиваем на тренировочные и тестрируемые
 X = torch.Tensor([i[0] for i in training_data]).view(-1, 50, 50)
 X = X / 255.0
 y = torch.Tensor([i[1] for i in training_data])
@@ -121,9 +121,9 @@ print(len(test_X))
 
 
 def train(net):
-    # С„СѓРЅРєС†РёСЏ С‚СЂРµРЅРёСЂРѕРІРєРё РјРѕРґРµР»Рё
+    # функция тренировки модели
     BATCH_SIZE = 100
-    EPOCHS = 6  # РІС‹Р±СЂР°РЅРѕ 6 РїСѓС‚РµРј РїРµСЂРµР±РѕСЂР° СЂР°Р·РЅС‹С… РІР°СЂРёР°РЅС‚РѕРІ
+    EPOCHS = 6  # выбрано 6 путем перебора разных вариантов
     for epoch in range(EPOCHS):
         for i in tqdm(range(0, len(train_X), BATCH_SIZE)):
             batch_X = train_X[i:i + BATCH_SIZE].view(-1, 1, 50, 50)
@@ -136,14 +136,14 @@ def train(net):
             loss = loss_function(outputs, batch_y)
             loss.backward()
             optimizer.step()
-        print(loss)  # РІС‹РІРѕРґ С„СѓРЅРєС†РёРё РїРѕС‚РµСЂСЊ
+        print(loss)  # вывод функции потерь
 
 
 train(net)
 
 
 def test(net):
-    # С„СѓРЅРєС†РёСЏ РїСЂРѕРІРµСЂРєРё
+    # функция проверки
     correct = 0
     total = 0
     with torch.no_grad():
@@ -155,11 +155,11 @@ def test(net):
             if predicted_class == real_class:
                 correct += 1
             total += 1
-    print("Accuracy:", round(correct / total, 3))  # РІС‹РІРѕРґРёС‚ С‚РѕС‡РЅРѕСЃС‚СЊ
+    print("Accuracy:", round(correct / total, 3))  # выводит точность
 
 
 test(net)
 
-# СЃРѕС…СЂР°РЅСЏРµРј РјРѕРґРµР»СЊ
+# сохраняем модель
 PATH = 'D:\mf.pth'
 torch.save(net.state_dict(), PATH)
