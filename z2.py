@@ -10,9 +10,9 @@ import argparse
 import json
 
 
-PATH = 'D:/mf.pth'
-threshold = 0.55
+PATH = 'D:/mf.pth' # путь до обученной модели
 class Net(nn.Module):
+    # класс модели
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(1, 32, 5)
@@ -44,22 +44,28 @@ class Net(nn.Module):
 
 
 if torch.cuda.is_available():
-    device = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
+    device = torch.device("cuda:0")
     print("Running on the GPU")
 else:
     device = torch.device("cpu")
     print("Running on the CPU")
 
+# инициируем модель, а затем загружаем заранее обученную модель
 net = Net().to(device)
 net.load_state_dict(torch.load(PATH))
 net.eval()
 print(net)
 
 transform = transforms.Compose([transforms.ToTensor()])
+# загружаем метки модели
 with open('D:/imagenet_classes.txt') as f:
   labels = [line.strip() for line in f.readlines()]
 
+
 def check_photos(dir):
+    # перебираем фото из директории
+    # нормализуем и трасформируем в тензор
+    # загружаем в модель
     res_dic = {}
     for f in os.listdir(dir):
         if "jpg" in f:
@@ -77,7 +83,7 @@ def check_photos(dir):
                 res_dic[f] = labels[index[0]]
             except Exception as e:
                 pass
-    return res_dic
+    return res_dic # возвращает результаты в виде словаря
 
 
 def parse_arguments():
@@ -94,6 +100,9 @@ def dir_path(path):
 
 
 def main():
+    # парсим переданные аргументы
+    # загружаем фото в модель
+    # результат записываем в файл
     parsed_args = parse_arguments()
     data = check_photos(parsed_args.path)
     with open('process_results.json', 'w') as f:
